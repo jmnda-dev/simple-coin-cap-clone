@@ -30,8 +30,13 @@ defmodule App.CoinDataWorker do
     {:ok, state}
   end
 
-  def handle_info(:fetch_from_api, state) do
-    {:noreply, state}
+  def handle_info(:fetch_from_api, current_state) do
+    {:ok, fetched_data} = fetch_coin_data()
+    new_state = %{current_state | coins_data: fetched_data}
+
+    schedule_coin_data_fetch()
+
+    {:noreply, new_state}
   end
 
   defp schedule_coin_data_fetch do
