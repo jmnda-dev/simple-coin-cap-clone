@@ -1,9 +1,11 @@
 defmodule App.CoinDataWorker do
   use GenServer
   require Logger
+  alias AppWeb.Endpoint
 
   @interval 5_000
   @coincap_url "https://api.coincap.io/v2/assets/?limit=10"
+  @coin_data_topic "coin_data"
 
   def start_link(initial_state) do
     GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
@@ -37,10 +39,11 @@ defmodule App.CoinDataWorker do
           Map.put(current_state, :coins_data, fetched_data)
 
         :error ->
-          Map.put(current_state, :coins_data, :error)
+          Map.put(current_state, :coins_data, nil)
       end
 
     schedule_data_fetch()
+    Endpoint.broadcast(@coin_data_topic, "coin_data_updated", %{})
     {:noreply, new_state}
   end
 
@@ -60,7 +63,7 @@ defmodule App.CoinDataServer do
   end
 
   defp clean_data(%{coins_data: coins_data_list} = data)
-       when coins_data_list == [] or is_atom(coins_data_list) do
+       when coins_data_list == [] or is_nil(coins_data_list) do
     data
   end
 
