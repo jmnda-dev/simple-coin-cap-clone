@@ -4,7 +4,7 @@ defmodule App.CoinDataWorker do
   alias AppWeb.Endpoint
 
   @interval 5_000
-  @coincap_url "https://api.coincap.io/v2/assets/?limit=10"
+  @coincap_url "https://api.coincap.io/v2/assets/?limit=200"
   @coin_data_topic "coin_data"
 
   def start_link(initial_state) do
@@ -57,9 +57,34 @@ defmodule App.CoinDataWorker do
 end
 
 defmodule App.CoinDataServer do
-  def get_all_coins_data do
-    GenServer.call(App.CoinDataWorker, :get_coins_data)
-    |> clean_data()
+  @default_page_size 10
+  def get_all_coins_data(page) do
+    cleaned_data =
+      GenServer.call(App.CoinDataWorker, :get_coins_data)
+      |> clean_data()
+
+    num_of_pages = number_of_pages(cleaned_data.coins_data)
+
+    paginated = paginate(cleaned_data.coins_data, String.to_integer(page), num_of_pages)
+
+    %{cleaned_data | coins_data: paginated}
+    |> Map.put(:pages, num_of_pages)
+  end
+
+  defp number_of_pages(coins_data_list) do
+    count = length(coins_data_list)
+    (count / @default_page_size) |> Float.ceil() |> round()
+  end
+
+  defp paginate(list, page_number, num_of_pages) do
+    start_index =
+      if page_number > num_of_pages or page_number <= 0 do
+        1
+      else
+        page_number
+      end
+
+    Enum.slice(list, (start_index - 1) * @default_page_size, @default_page_size)
   end
 
   defp clean_data(%{coins_data: coins_data_list} = data)
@@ -79,6 +104,10 @@ defmodule App.CoinDataServer do
     coin_data_map
     |> Enum.map(fn {key, value} -> parse_and_shorten_value(key, value) end)
     |> Enum.into(%{})
+  end
+
+  defp parse_and_shorten_value(key, value) when is_nil(value) do
+    {key, value}
   end
 
   defp parse_and_shorten_value(key, value)
@@ -112,11 +141,17 @@ defmodule App.CoinDataServer do
   end
 
   defp number_to_human(value) do
-    [number, prefix] =
+    new_value =
       value
       |> Number.Human.number_to_human()
       |> String.split(" ")
 
-    number <> String.at(prefix, 0)
+    case new_value do
+      [number, prefix] ->
+        number <> String.at(prefix, 0)
+
+      _ ->
+        value
+    end
   end
 end
