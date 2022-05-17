@@ -65,14 +65,20 @@ defmodule App.CoinDataServer do
 
     num_of_pages = number_of_pages(cleaned_data.coins_data)
 
-    paginated = paginate(cleaned_data.coins_data, String.to_integer(page), num_of_pages)
+    paginated = paginate(cleaned_data.coins_data, page, num_of_pages)
 
     %{cleaned_data | coins_data: paginated}
     |> Map.put(:pages, num_of_pages)
   end
 
   defp number_of_pages(coins_data_list) do
-    count = length(coins_data_list)
+    count =
+      if is_nil(coins_data_list) do
+        0
+      else
+        length(coins_data_list)
+      end
+
     (count / @default_page_size) |> Float.ceil() |> round()
   end
 
