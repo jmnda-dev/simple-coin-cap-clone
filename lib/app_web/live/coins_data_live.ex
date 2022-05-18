@@ -11,19 +11,10 @@ defmodule AppWeb.CoinsDataLive do
       Endpoint.subscribe(@coin_data_topic)
     end
 
-    page = 1
-
     {
       :ok,
       socket
       |> assign_page_title("Live Crypto Currency Data")
-      |> assign(
-        sort_by: "rank",
-        sort_order: :asc,
-        page: page,
-        per_page: 10
-      )
-      |> assign(:data, assigns_coins_data(page))
     }
   end
 
@@ -34,11 +25,20 @@ defmodule AppWeb.CoinsDataLive do
     sort_by = (params["sort_by"] || "rank") |> String.to_atom()
     sort_order = (params["sort_order"] || "asc") |> String.to_atom()
 
+    paginate_options = %{page: page, per_page: per_page}
+    sort_options = %{sort_by: sort_by, sort_order: sort_order}
+
+    data =
+      CoinDataServer.get_all_coins_data(
+        paginate: paginate_options,
+        sort: sort_options
+      )
+
     {
       :noreply,
       socket
-      |> assign(sort_by: sort_by, sort_order: sort_order, page: page, per_page: per_page)
-      |> assign(:data, assigns_coins_data(page))
+      |> assign(paginate: paginate_options, sort: sort_options)
+      |> assign(:data, data)
     }
   end
 
@@ -119,7 +119,7 @@ defmodule AppWeb.CoinsDataLive do
           <div class="flex justify-center mt-3">
             <div class="btn-group">
               <%= for page <- 1..@data.pages do %>
-                <%= if page == @page do %>
+                <%= if page == @paginate.page do %>
                   <%= live_patch to: Routes.coins_data_path(@socket, :index, page: page), class: "btn-disabled" do %>
                     <button class="btn btn-md btn-disabled"><%= page %></button>
                   <% end %>
@@ -138,21 +138,23 @@ defmodule AppWeb.CoinsDataLive do
   end
 
   def handle_info(%{event: "coin_data_updated"}, %{assigns: assigns} = socket) do
-    {:noreply, socket |> assign(data: assigns_coins_data(assigns.page))}
+    data =
+      CoinDataServer.get_all_coins_data(
+        paginate: assigns.paginate,
+        sort: assigns.sort
+      )
+
+    {:noreply, socket |> assign(data: data)}
   end
 
   defp assign_page_title(socket, title) do
     assign(socket, :page_title, title)
   end
 
-  defp assigns_coins_data(page) do
-    CoinDataServer.get_all_coins_data(page)
-  end
-
   def sort_link(socket, link_text, sort_by, options) do
     live_patch(link_text,
       to:
-        Routes.coins_data_path(socket, :index,
+        Routes.live_path(socket, __MODULE__,
           sort_by: sort_by,
           sort_order: toggle_sort_order(options.sort_order)
         )

@@ -58,7 +58,9 @@ end
 
 defmodule App.CoinDataServer do
   @default_page_size 10
-  def get_all_coins_data(page) do
+  def get_all_coins_data(options) do
+    {page, _per_page} = get_paginate_options(options)
+
     cleaned_data =
       GenServer.call(App.CoinDataWorker, :get_coins_data)
       |> clean_data()
@@ -80,6 +82,16 @@ defmodule App.CoinDataServer do
       end
 
     (count / @default_page_size) |> Float.ceil() |> round()
+  end
+
+  defp get_paginate_options(options) do
+    %{page: page, per_page: per_page} = Keyword.get(options, :paginate)
+    {page, per_page}
+  end
+
+  defp get_sort_options(options) do
+    %{sort_by: sort_by, sort_order: sort_order} = Keyword.get(options, :sort)
+    {sort_by, sort_order}
   end
 
   defp paginate(list, page_number, num_of_pages) do
