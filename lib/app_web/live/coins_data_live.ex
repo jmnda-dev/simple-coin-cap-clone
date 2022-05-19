@@ -22,7 +22,7 @@ defmodule AppWeb.CoinsDataLive do
     page = String.to_integer(params["page"] || "1")
     per_page = String.to_integer(params["per_page"] || "10")
 
-    sort_by = (params["sort_by"] || "rank") |> String.to_atom()
+    sort_by = params["sort_by"] || "rank"
     sort_order = (params["sort_order"] || "asc") |> String.to_atom()
 
     paginate_options = %{page: page, per_page: per_page}

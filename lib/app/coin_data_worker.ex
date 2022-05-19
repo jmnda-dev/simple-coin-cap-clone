@@ -59,21 +59,23 @@ end
 defmodule App.CoinDataServer do
   @default_page_size 10
   def get_all_coins_data(options) do
-    {page, _per_page} = get_paginate_options(options)
+    {page, per_page} = get_paginate_options(options)
+    {sort_by, sort_order} = get_sort_options(options)
 
-    cleaned_data =
+    %{coins_data: coins_data} =
       GenServer.call(App.CoinDataWorker, :get_coins_data)
       |> clean_data()
 
-    num_of_pages = number_of_pages(cleaned_data.coins_data)
+    num_of_pages = number_of_pages(coins_data, per_page)
 
-    paginated = paginate(cleaned_data.coins_data, page, num_of_pages)
-
-    %{cleaned_data | coins_data: paginated}
-    |> Map.put(:pages, num_of_pages)
+    %{
+      coins_data:
+        coins_data |> sort_data(sort_by, sort_order) |> paginate(page, num_of_pages, per_page),
+      pages: num_of_pages
+    }
   end
 
-  defp number_of_pages(coins_data_list) do
+  defp number_of_pages(coins_data_list, per_page) do
     count =
       if is_nil(coins_data_list) do
         0
@@ -81,7 +83,7 @@ defmodule App.CoinDataServer do
         length(coins_data_list)
       end
 
-    (count / @default_page_size) |> Float.ceil() |> round()
+    (count / per_page) |> Float.ceil() |> round()
   end
 
   defp get_paginate_options(options) do
@@ -94,7 +96,20 @@ defmodule App.CoinDataServer do
     {sort_by, sort_order}
   end
 
-  defp paginate(list, page_number, num_of_pages) do
+  def sort_data(data, sort_by, sort_order)
+      when sort_by in ["priceUsd", "changePercent24Hr", "supply", "volumeUsd24Hr"] do
+    Enum.sort_by(data, fn map -> map[sort_by] |> String.to_float() end, sort_order)
+  end
+
+  def sort_data(data, sort_by, sort_order) when sort_by == "rank" do
+    Enum.sort_by(data, fn map -> map[sort_by] |> String.to_integer() end, sort_order)
+  end
+
+  def sort_data(data, sort_by, sort_order) when sort_by == "name" do
+    Enum.sort_by(data, &Map.fetch(&1, sort_by), sort_order)
+  end
+
+  defp paginate(list, page_number, num_of_pages, per_page) do
     start_index =
       if page_number > num_of_pages or page_number <= 0 do
         1
@@ -102,7 +117,7 @@ defmodule App.CoinDataServer do
         page_number
       end
 
-    Enum.slice(list, (start_index - 1) * @default_page_size, @default_page_size)
+    Enum.slice(list, (start_index - 1) * per_page, per_page)
   end
 
   defp clean_data(%{coins_data: coins_data_list} = data)
