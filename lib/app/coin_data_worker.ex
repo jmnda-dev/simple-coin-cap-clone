@@ -3,7 +3,7 @@ defmodule App.CoinDataWorker do
   require Logger
   alias AppWeb.Endpoint
 
-  @interval 5_000
+  @interval 10_000
   @coincap_url "https://api.coincap.io/v2/assets/?limit=200"
   @coin_data_topic "coin_data"
 
@@ -39,7 +39,7 @@ defmodule App.CoinDataWorker do
           Map.put(current_state, :coins_data, fetched_data)
 
         :error ->
-          Map.put(current_state, :coins_data, nil)
+          Map.put(current_state, :coins_data, [])
       end
 
     schedule_data_fetch()
@@ -57,22 +57,18 @@ defmodule App.CoinDataWorker do
 end
 
 defmodule App.CoinDataServer do
-  @default_page_size 10
   def get_all_coins_data(options) do
     {page, per_page} = get_paginate_options(options)
     {sort_by, sort_order} = get_sort_options(options)
 
-    %{coins_data: coins_data} =
-      GenServer.call(App.CoinDataWorker, :get_coins_data)
-      |> clean_data()
+    data = GenServer.call(App.CoinDataWorker, :get_coins_data)
 
-    num_of_pages = number_of_pages(coins_data, per_page)
+    num_of_pages = number_of_pages(data.coins_data, per_page)
 
-    %{
-      coins_data:
-        coins_data |> sort_data(sort_by, sort_order) |> paginate(page, num_of_pages, per_page),
-      pages: num_of_pages
-    }
+    sorted =
+      data.coins_data |> sort_data(sort_by, sort_order) |> paginate(page, num_of_pages, per_page)
+
+    clean_data(%{data | coins_data: sorted}) |> Map.put(:pages, num_of_pages)
   end
 
   defp number_of_pages(coins_data_list, per_page) do
@@ -97,12 +93,24 @@ defmodule App.CoinDataServer do
   end
 
   def sort_data(data, sort_by, sort_order)
-      when sort_by in ["priceUsd", "changePercent24Hr", "supply", "volumeUsd24Hr"] do
+      when sort_by in [
+             "priceUsd",
+             "marketCapUsd",
+             "changePercent24Hr",
+             "supply",
+             "volumeUsd24Hr"
+           ] do
     Enum.sort_by(data, fn map -> map[sort_by] |> String.to_float() end, sort_order)
   end
 
   def sort_data(data, sort_by, sort_order) when sort_by == "rank" do
-    Enum.sort_by(data, fn map -> map[sort_by] |> String.to_integer() end, sort_order)
+    Enum.sort_by(
+      data,
+      fn map ->
+        map[sort_by] |> String.to_integer()
+      end,
+      sort_order
+    )
   end
 
   def sort_data(data, sort_by, sort_order) when sort_by == "name" do

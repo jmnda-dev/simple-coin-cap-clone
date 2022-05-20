@@ -68,14 +68,74 @@ defmodule AppWeb.CoinsDataLive do
                 <!-- head -->
                 <thead>
                   <tr>
-                    <th>Rank</th>
-                    <th>Name</th>
-                    <th>Price</th>
-                    <th>Market Cap</th>
-                    <th>VWAP</th>
-                    <th>Supply</th>
-                    <th>Volume(24Hr)</th>
-                    <th>Change(24Hr)</th>
+                    <th>
+                      <%= sort_link(
+                        @socket,
+                        "Rank " <> sort_icon("rank", @sort.sort_by, @sort.sort_order),
+                        @paginate,
+                        "rank",
+                        @sort.sort_order
+                      ) %>
+                    </th>
+                    <th>
+                      <%= sort_link(
+                        @socket,
+                        "Name " <> sort_icon("name", @sort.sort_by, @sort.sort_order),
+                        @paginate,
+                        "name",
+                        @sort.sort_order
+                      ) %>
+                    </th>
+                    <th>
+                      <%= sort_link(
+                        @socket,
+                        "Price " <> sort_icon("priceUsd", @sort.sort_by, @sort.sort_order),
+                        @paginate,
+                        "priceUsd",
+                        @sort.sort_order
+                      ) %>
+                    </th>
+                    <th>
+                      <%= sort_link(
+                        @socket,
+                        "Market Cap " <> sort_icon("marketCapUsd", @sort.sort_by, @sort.sort_order),
+                        @paginate,
+                        "marketCapUsd",
+                        @sort.sort_order
+                      ) %>
+                    </th>
+                    <th>
+                      VWAP
+                    </th>
+                    <th>
+                      <%= sort_link(
+                        @socket,
+                        "Supply " <> sort_icon("supply", @sort.sort_by, @sort.sort_order),
+                        @paginate,
+                        "supply",
+                        @sort.sort_order
+                      ) %>
+                    </th>
+                    <th>
+                      <%= sort_link(
+                        @socket,
+                        "Volume(24Hr) " <>
+                          sort_icon("volumeUsd24Hr", @sort.sort_by, @sort.sort_order),
+                        @paginate,
+                        "volumeUsd24Hr",
+                        @sort.sort_order
+                      ) %>
+                    </th>
+                    <th>
+                      <%= sort_link(
+                        @socket,
+                        "Change(24Hr) " <>
+                          sort_icon("changePercent24Hr", @sort.sort_by, @sort.sort_order),
+                        @paginate,
+                        "changePercent24Hr",
+                        @sort.sort_order
+                      ) %>
+                    </th>
                     <th></th>
                   </tr>
                 </thead>
@@ -123,11 +183,11 @@ defmodule AppWeb.CoinsDataLive do
             <div class="btn-group">
               <%= for page <- 1..@data.pages do %>
                 <%= if page == @paginate.page do %>
-                  <%= live_patch to: Routes.coins_data_path(@socket, :index, page: page, per_page: @paginate.per_page), class: "btn-disabled" do %>
+                  <%= live_patch to: Routes.live_path(@socket, __MODULE__, page: page, per_page: @paginate.per_page, sort_by: @sort.sort_by, sort_order: @sort.sort_order), class: "btn-disabled" do %>
                     <button class="btn btn-md btn-disabled"><%= page %></button>
                   <% end %>
                 <% else %>
-                  <%= live_patch to: Routes.coins_data_path(@socket, :index, page: page, per_page: @paginate.per_page) do %>
+                  <%= live_patch to: Routes.live_path(@socket, __MODULE__, page: page, per_page: @paginate.per_page, sort_by: @sort.sort_by, sort_order: @sort.sort_order) do %>
                     <button class="btn btn-md"><%= page %></button>
                   <% end %>
                 <% end %>
@@ -147,20 +207,6 @@ defmodule AppWeb.CoinsDataLive do
     }
   end
 
-  defp assign_page_title(socket, title) do
-    assign(socket, :page_title, title)
-  end
-
-  # def sort_link(socket, link_text, sort_by, options) do
-  #   live_patch(link_text,
-  #     to:
-  #       Routes.live_path(socket, __MODULE__,
-  #         sort_by: sort_by,
-  #         sort_order: toggle_sort_order(options.sort_order)
-  #       )
-  #   )
-  # end
-
   def handle_event("select-per-page", %{"per-page" => per_page}, %{assigns: assigns} = socket) do
     paginate_options = %{assigns.paginate | per_page: String.to_integer(per_page)}
 
@@ -175,6 +221,42 @@ defmodule AppWeb.CoinsDataLive do
     }
   end
 
+  def handle_event("sort", %{"sort_by" => sort_by}, %{assigns: assigns} = socket) do
+    sort_options = %{
+      assigns.sort
+      | sort_by: sort_by,
+        sort_order: toggle_sort_order(assigns.sort.sort_order)
+    }
+
+    {
+      :noreply,
+      socket
+      |> assign(
+        data: assign_coins_data(assigns.paginate, sort_options),
+        paginate: assigns.paginate,
+        sort: sort_options
+      )
+    }
+  end
+
+  defp assign_page_title(socket, title) do
+    assign(socket, :page_title, title)
+  end
+
+  defp sort_link(socket, text, paginate_options, sort_by, sort_order) do
+    live_patch(text,
+      to:
+        Routes.live_path(
+          socket,
+          __MODULE__,
+          sort_by: sort_by,
+          sort_order: toggle_sort_order(sort_order),
+          page: paginate_options.page,
+          per_page: paginate_options.per_page
+        )
+    )
+  end
+
   defp toggle_sort_order(:asc), do: :desc
   defp toggle_sort_order(:desc), do: :asc
 
@@ -184,4 +266,8 @@ defmodule AppWeb.CoinsDataLive do
       sort: sort_options
     )
   end
+
+  def sort_icon(col_name, sort_by, :asc) when col_name == sort_by, do: "🔽️"
+  def sort_icon(col_name, sort_by, :desc) when col_name == sort_by, do: "🔼️"
+  def sort_icon(_, _, _), do: ""
 end
