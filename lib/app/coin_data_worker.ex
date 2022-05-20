@@ -3,7 +3,7 @@ defmodule App.CoinDataWorker do
   require Logger
   alias AppWeb.Endpoint
 
-  @interval 5_000
+  @interval 10_000
   @coincap_url "https://api.coincap.io/v2/assets/?limit=200"
   @coin_data_topic "coin_data"
 
@@ -39,7 +39,7 @@ defmodule App.CoinDataWorker do
           Map.put(current_state, :coins_data, fetched_data)
 
         :error ->
-          Map.put(current_state, :coins_data, nil)
+          Map.put(current_state, :coins_data, [])
       end
 
     schedule_data_fetch()
@@ -57,26 +57,67 @@ defmodule App.CoinDataWorker do
 end
 
 defmodule App.CoinDataServer do
-  @default_page_size 10
-  def get_all_coins_data(page) do
-    cleaned_data =
-      GenServer.call(App.CoinDataWorker, :get_coins_data)
-      |> clean_data()
+  def get_all_coins_data(options) do
+    {page, per_page} = get_paginate_options(options)
+    {sort_by, sort_order} = get_sort_options(options)
 
-    num_of_pages = number_of_pages(cleaned_data.coins_data)
+    data = GenServer.call(App.CoinDataWorker, :get_coins_data)
 
-    paginated = paginate(cleaned_data.coins_data, String.to_integer(page), num_of_pages)
+    num_of_pages = number_of_pages(data.coins_data, per_page)
 
-    %{cleaned_data | coins_data: paginated}
-    |> Map.put(:pages, num_of_pages)
+    sorted =
+      data.coins_data |> sort_data(sort_by, sort_order) |> paginate(page, num_of_pages, per_page)
+
+    clean_data(%{data | coins_data: sorted}) |> Map.put(:pages, num_of_pages)
   end
 
-  defp number_of_pages(coins_data_list) do
-    count = length(coins_data_list)
-    (count / @default_page_size) |> Float.ceil() |> round()
+  defp number_of_pages(coins_data_list, per_page) do
+    count =
+      if is_nil(coins_data_list) do
+        0
+      else
+        length(coins_data_list)
+      end
+
+    (count / per_page) |> Float.ceil() |> round()
   end
 
-  defp paginate(list, page_number, num_of_pages) do
+  defp get_paginate_options(options) do
+    %{page: page, per_page: per_page} = Keyword.get(options, :paginate)
+    {page, per_page}
+  end
+
+  defp get_sort_options(options) do
+    %{sort_by: sort_by, sort_order: sort_order} = Keyword.get(options, :sort)
+    {sort_by, sort_order}
+  end
+
+  def sort_data(data, sort_by, sort_order)
+      when sort_by in [
+             "priceUsd",
+             "marketCapUsd",
+             "changePercent24Hr",
+             "supply",
+             "volumeUsd24Hr"
+           ] do
+    Enum.sort_by(data, fn map -> map[sort_by] |> String.to_float() end, sort_order)
+  end
+
+  def sort_data(data, sort_by, sort_order) when sort_by == "rank" do
+    Enum.sort_by(
+      data,
+      fn map ->
+        map[sort_by] |> String.to_integer()
+      end,
+      sort_order
+    )
+  end
+
+  def sort_data(data, sort_by, sort_order) when sort_by == "name" do
+    Enum.sort_by(data, &Map.fetch(&1, sort_by), sort_order)
+  end
+
+  defp paginate(list, page_number, num_of_pages, per_page) do
     start_index =
       if page_number > num_of_pages or page_number <= 0 do
         1
@@ -84,7 +125,7 @@ defmodule App.CoinDataServer do
         page_number
       end
 
-    Enum.slice(list, (start_index - 1) * @default_page_size, @default_page_size)
+    Enum.slice(list, (start_index - 1) * per_page, per_page)
   end
 
   defp clean_data(%{coins_data: coins_data_list} = data)
