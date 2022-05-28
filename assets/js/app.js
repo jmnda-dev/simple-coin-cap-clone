@@ -30,19 +30,17 @@ let Hooks = {}
 
 Hooks.Chart = {
     mounted() {
-        console.log("mounted")
         const ctx = document.getElementById('myChart').getContext('2d');
 
         let chart = new Chart(ctx, {
             type: 'line',
             data: {
                 datasets: [{
-                    label: 'First dataset',
+                    label: 'Price History',
                     data: [],
                     fill: {
                         target: 'origin',
-                        above: '#9BA3EB',   // Area will be red above the origin
-                        below: 'rgb(0, 0, 255)'    // And blue below the origin
+                        above: '#205375',   // Area will be red above the origin
                     }
                 }],
                 labels: []
