@@ -9,6 +9,7 @@ defmodule AppWeb.CoinsDataLive do
   def mount(_, _, socket) do
     if connected?(socket) do
       Endpoint.subscribe(@coin_data_topic)
+      # :timer.send_interval(2000, self(), :update_chart)
     end
 
     {
