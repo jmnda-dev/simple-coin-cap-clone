@@ -24,9 +24,39 @@ import "phoenix_html"
 import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import topbar from "../vendor/topbar"
+// import "chartjs"
+
+let Hooks = {}
+
+Hooks.Chart = {
+    mounted() {
+        const ctx = document.getElementById('myChart').getContext('2d');
+
+        let chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Price History',
+                    data: [],
+                    fill: {
+                        target: 'origin',
+                        above: '#205375',   // Area will be red above the origin
+                    }
+                }],
+                labels: []
+            }
+        });
+
+        this.handleEvent("refresh_chart", ({ x, y }) => {
+            chart.data.datasets[0].data = x
+            chart.data.labels = y
+            chart.update()
+        })
+    }
+}
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-let liveSocket = new LiveSocket("/live", Socket, { params: { _csrf_token: csrfToken } })
+let liveSocket = new LiveSocket("/live", Socket, { hooks: Hooks, params: { _csrf_token: csrfToken } })
 
 // Show progress bar on live navigation and form submits
 topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })

@@ -3,17 +3,17 @@ defmodule App.CoinDataWorker do
   require Logger
   alias AppWeb.Endpoint
 
-  @interval 10_000
-  @coincap_url "https://api.coincap.io/v2/assets/?limit=200"
+  @interval 30_000
+  @coincap_url "https://api.coincap.io/v2/assets/"
   @coin_data_topic "coin_data"
 
   def start_link(initial_state) do
     GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
   end
 
-  defp fetch_coin_data do
+  defp fetch_all_coins_data do
     with {:ok, %{body: body, status_code: 200}} <-
-           HTTPoison.get(@coincap_url),
+           HTTPoison.get(@coincap_url <> "?limit=200"),
          {:ok, %{"data" => data}} = Jason.decode(body) do
       {:ok, data}
     else
@@ -34,7 +34,7 @@ defmodule App.CoinDataWorker do
 
   def handle_info(:fetch_from_api, current_state) do
     new_state =
-      case fetch_coin_data() do
+      case fetch_all_coins_data() do
         {:ok, fetched_data} ->
           Map.put(current_state, :coins_data, fetched_data)
 
@@ -44,6 +44,19 @@ defmodule App.CoinDataWorker do
 
     schedule_data_fetch()
     Endpoint.broadcast(@coin_data_topic, "coin_data_updated", %{})
+    {:noreply, new_state}
+  end
+
+  def handle_info(:fetch_coin_history, current_state) do
+    new_state =
+      case fetch_all_coins_data() do
+        {:ok, fetched_data} ->
+          Map.put(current_state, :coins_history, fetched_data)
+
+        :error ->
+          Map.put(current_state, :coins_history, [])
+      end
+
     {:noreply, new_state}
   end
 
@@ -69,6 +82,15 @@ defmodule App.CoinDataServer do
       data.coins_data |> sort_data(sort_by, sort_order) |> paginate(page, num_of_pages, per_page)
 
     clean_data(%{data | coins_data: sorted}) |> Map.put(:pages, num_of_pages)
+  end
+
+  def get_coin_data(id) do
+    %{coins_data: data} = GenServer.call(App.CoinDataWorker, :get_coins_data)
+
+    data
+    |> Enum.find(&(&1["id"] == id))
+    |> Enum.map(fn {key, value} -> parse_and_shorten_value(key, value) end)
+    |> Enum.into(%{})
   end
 
   defp number_of_pages(coins_data_list, per_page) do

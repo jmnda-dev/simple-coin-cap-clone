@@ -19,6 +19,7 @@ defmodule AppWeb.Router do
 
     get "/index", PageController, :index
     live "/", CoinsDataLive
+    live "/:id/detail", CoinDetailLive
   end
 
   # Other scopes may use custom stacks.
