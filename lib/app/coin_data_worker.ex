@@ -85,7 +85,7 @@ defmodule App.CoinDataServer do
   end
 
   def get_coin_data(id) do
-    data = GenServer.call(App.CoinDataWorker, :get_coins_data)
+    %{coins_data: data} = GenServer.call(App.CoinDataWorker, :get_coins_data)
 
     data
     |> Enum.find(&(&1["id"] == id))
