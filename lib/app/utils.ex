@@ -53,9 +53,6 @@ defmodule App.Utils.CoinDataFetcher do
     |> String.replace_suffix(":00.000", "")
   end
 
-  def create_plot_data(take) when take == "m1" do
-  end
-
   defp create_plot_data(data, interval) do
     Enum.reduce(
       data,
@@ -69,15 +66,15 @@ defmodule App.Utils.CoinDataFetcher do
     |> take_items(interval)
   end
 
-  defp take_items(%{x: x, y: y}, interval) when interval in ["m1", "m5", "m15", "m30"] do
-    %{x: Enum.take(x, -60), y: Enum.take(y, -60)}
+  defp take_items(%{x: x, y: y}, interval) when interval in ["m1", "m5", "m15"] do
+    %{x: Enum.take(x, -40), y: Enum.take(y, -40)}
+  end
+
+  defp take_items(%{x: x, y: y}, interval) when interval == "m30" do
+    %{x: Enum.take(x, -48), y: Enum.take(y, -48)}
   end
 
   defp take_items(%{x: x, y: y}, interval) when interval in ["h1", "h2", "h6", "h12"] do
     %{x: Enum.take(x, -24), y: Enum.take(y, -24)}
-  end
-
-  defp take_items(%{x: x, y: y}, interval) when interval == "d1" do
-    %{x: Enum.take(x, -30), y: Enum.take(y, -30)}
   end
 end
