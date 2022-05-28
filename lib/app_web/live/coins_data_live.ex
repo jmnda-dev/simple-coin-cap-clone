@@ -3,13 +3,13 @@ defmodule AppWeb.CoinsDataLive do
   alias App.CoinDataServer
   alias AppWeb.SpinnerComponent
   alias AppWeb.Endpoint
+  import AppWeb.LiveHelpers
 
   @coin_data_topic "coin_data"
 
   def mount(_, _, socket) do
     if connected?(socket) do
       Endpoint.subscribe(@coin_data_topic)
-      # :timer.send_interval(2000, self(), :update_chart)
     end
 
     {
@@ -169,7 +169,11 @@ defmodule AppWeb.CoinsDataLive do
                       <td><%= coin_data["vwap24Hr"] %></td>
                       <td><%= coin_data["supply"] %></td>
                       <td><%= coin_data["volumeUsd24Hr"] %></td>
-                      <td><%= coin_data["changePercent24Hr"] %></td>
+                      <td>
+                        <span class={change_percent(coin_data["changePercent24Hr"])}>
+                          <%= coin_data["changePercent24Hr"] %>
+                        </span>
+                      </td>
                       <th>
                         <%= live_redirect to: Routes.live_path(@socket, AppWeb.CoinDetailLive, coin_data["id"] |> String.downcase() ) do %>
                           <button class="btn btn-ghost btn-xs">details</button>
