@@ -27,22 +27,6 @@ defmodule App.CoinDataWorker do
     end
   end
 
-  defp fetch_coin_history(id, interval \\ "h1") do
-    with {:ok, %{body: body, status_code: 200}} <-
-           HTTPoison.get("#{@coincap_url}/#{id}/history?interval=#{interval}"),
-         {:ok, %{"data" => data}} = Jason.decode(body) do
-      {:ok, data}
-    else
-      {:ok, %{status_code: status_code}} ->
-        Logger.error("An error ouccured, status_code: #{status_code}")
-        :error
-
-      {:error, %{reason: reason}} ->
-        Logger.error("An error occured, reason: #{reason}")
-        :error
-    end
-  end
-
   def init(initial_state) do
     schedule_data_fetch()
     {:ok, initial_state}
@@ -102,21 +86,11 @@ defmodule App.CoinDataServer do
 
   def get_coin_data(id) do
     data = GenServer.call(App.CoinDataWorker, :get_coins_data)
-    history = GenServer.call(App.CoinDataWorker, :get_coins_history)
 
-    case data.coins_data do
-      nil ->
-        nil
-
-      [] ->
-        %{}
-
-      data ->
-        data
-        |> Enum.find(&(&1["id"] == id))
-        |> Enum.map(fn {key, value} -> parse_and_shorten_value(key, value) end)
-        |> Enum.into(%{})
-    end
+    data
+    |> Enum.find(&(&1["id"] == id))
+    |> Enum.map(fn {key, value} -> parse_and_shorten_value(key, value) end)
+    |> Enum.into(%{})
   end
 
   defp number_of_pages(coins_data_list, per_page) do
