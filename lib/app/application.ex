@@ -16,7 +16,7 @@ defmodule App.Application do
       AppWeb.Endpoint,
       # Start a worker by calling: App.Worker.start_link(arg)
       # {App.Worker, arg}
-      {App.CoinDataWorker, %{coins_data: []}}
+      {App.CoinDataServer, %{data: [], loaded?: false, success?: false}}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
