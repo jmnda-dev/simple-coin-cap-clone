@@ -1,9 +1,9 @@
 defmodule AppWeb.CoinDetailLive do
   use AppWeb, :live_view
   alias AppWeb.{ChartComponent, SpinnerComponent}
-  alias App.Utils.CoinDataFetcher
-  alias App.CoinDataServer
+  alias App.CoinDataAPI
   import AppWeb.LiveHelpers
+  require Logger
 
   def mount(_, _, socket) do
     if connected?(socket) do
@@ -17,14 +17,7 @@ defmodule AppWeb.CoinDetailLive do
     ~H"""
     <div class="flex flex-col items-center mt-5">
       <div class="flex">
-        <div class="mask mask-squircle w-12 h-12">
-          <img
-            src={
-              "https://assets.coincap.io/assets/icons/#{@data["symbol"] |> String.downcase()}@2x.png"
-            }
-            alt="Avatar Tailwind CSS Component"
-          />
-        </div>
+        <div class="mask mask-squircle w-12 h-12"></div>
         <h1 class="text-4xl ml-3 mb-5"><%= @data["name"] %> (<%= @data["symbol"] %>)</h1>
       </div>
       <div class="m-5">
@@ -77,12 +70,12 @@ defmodule AppWeb.CoinDetailLive do
 
   def handle_params(%{"id" => coin_id} = params, _url, socket) do
     interval = params["interval"] || "h1"
-    coin_data = CoinDataServer.get_coin_data(coin_id)
+    coin_data = CoinDataAPI.get_one(coin_id)
     {:noreply, socket |> assign(coin_id: coin_id, data: coin_data, interval: interval)}
   end
 
   def handle_info(:update, %{assigns: assigns} = socket) do
-    data = CoinDataFetcher.get_coin_history(assigns.coin_id, assigns.interval)
+    data = CoinDataAPI.get_history(assigns.coin_id, assigns.interval)
 
     {:noreply,
      push_event(
@@ -93,7 +86,7 @@ defmodule AppWeb.CoinDetailLive do
   end
 
   def handle_event("interval", %{"interval" => interval}, %{assigns: assigns} = socket) do
-    data = CoinDataFetcher.get_coin_history(assigns.coin_id, interval)
+    data = CoinDataAPI.get_history(assigns.coin_id, interval)
 
     {:noreply,
      push_event(

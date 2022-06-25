@@ -1,11 +1,11 @@
 defmodule AppWeb.CoinsDataLive do
   use AppWeb, :live_view
-  alias App.CoinDataServer
+  alias App.CoinDataAPI
   alias AppWeb.SpinnerComponent
   alias AppWeb.Endpoint
   import AppWeb.LiveHelpers
 
-  @coin_data_topic "coin_data"
+  @coin_data_topic "coin_data_update"
 
   def mount(_, _, socket) do
     if connected?(socket) do
@@ -57,15 +57,15 @@ defmodule AppWeb.CoinsDataLive do
         <div>
           <div class="flex">
             <table class="table w-full">
-              <%= if is_nil(@data.coins_data) do %>
+              <%= if is_nil(@data.data) do %>
                 <p>An error occured while retrieving data</p>
               <% end %>
 
-              <%= if @data.coins_data == [] do %>
+              <%= if @data.data == [] do %>
                 <SpinnerComponent.spinner class="w-20 h-20 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" />
               <% end %>
 
-              <%= if @data.coins_data != [] and not is_nil(@data.coins_data) do %>
+              <%= if @data.data != [] and not is_nil(@data.data) do %>
                 <!-- head -->
                 <thead>
                   <tr>
@@ -141,7 +141,7 @@ defmodule AppWeb.CoinsDataLive do
                   </tr>
                 </thead>
                 <tbody>
-                  <%= for coin_data <- @data.coins_data do %>
+                  <%= for coin_data <- @data.data do %>
                     <tr>
                       <td><%= coin_data["rank"] %></td>
                       <td>
@@ -210,7 +210,7 @@ defmodule AppWeb.CoinsDataLive do
     """
   end
 
-  def handle_info(%{event: "coin_data_updated"}, %{assigns: assigns} = socket) do
+  def handle_info(%{event: "data_updated"}, %{assigns: assigns} = socket) do
     {
       :noreply,
       socket |> assign(data: assign_coins_data(assigns.paginate, assigns.sort))
@@ -271,7 +271,7 @@ defmodule AppWeb.CoinsDataLive do
   defp toggle_sort_order(:desc), do: :asc
 
   defp assign_coins_data(paginate_options, sort_options) do
-    CoinDataServer.get_all_coins_data(
+    CoinDataAPI.get_all(
       paginate: paginate_options,
       sort: sort_options
     )
