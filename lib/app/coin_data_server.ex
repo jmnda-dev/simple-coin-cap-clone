@@ -1,4 +1,8 @@
 defmodule App.CoinDataServer do
+  @moduledoc """
+  A GenServer process that fetches data from the CoinCap API and
+  cache.
+  """
   use GenServer
   require Logger
   alias AppWeb.Endpoint
@@ -19,8 +23,8 @@ defmodule App.CoinDataServer do
          {:ok, %{"data" => data}} = Jason.decode(body) do
       {:ok, data}
     else
-      {:ok, %{status_code: status_code}} ->
-        Logger.error("An error ouccured, status_code: #{status_code}")
+      {:ok, %{status_code: status_code} = reason} ->
+        Logger.error("An error ouccured, status_code: #{status_code}, reason: #{reason}")
         :error
 
       {:error, %{reason: reason}} ->
@@ -49,7 +53,7 @@ defmodule App.CoinDataServer do
     {:noreply, new_state}
   end
 
-  def handle_call({:fetch_coin_history, %{id: id, interval: interval}}, _from, current_state) do
+  def handle_call({:fetch_coin_history, %{id: id, interval: interval}}, current_state) do
     url = "#{@base_url}/assets/#{id}/history/?interval=#{interval}"
 
     history_data =

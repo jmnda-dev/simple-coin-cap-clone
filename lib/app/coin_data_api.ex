@@ -1,4 +1,9 @@
 defmodule App.CoinDataAPI do
+  @doc """
+  Contains API functions for interacting with CoinDataServer process
+  exposes public functions to clients to get data.
+
+  """
   require Logger
 
   def get_all(options) do
@@ -35,20 +40,28 @@ defmodule App.CoinDataAPI do
   end
 
   def get_history(id, interval) do
-    fetch_params = %{id: id, interval: interval}
-    data = GenServer.call(App.CoinDataServer, {:fetch_coin_history, fetch_params}, 10000)
+    url = "https://api.coincap.io/v2/assets/#{id}/history/?interval=#{interval}"
 
-    data
+    history_data =
+      case fetch_history_data(url) do
+        {:ok, fetched_data} ->
+          fetched_data
+
+        :error ->
+          :error
+      end
+
+    history_data
     |> clean_history_data()
     |> create_plot_data(interval)
   end
 
-  defp get_number_of_pages(coins_data_list, per_page) do
+  defp get_number_of_pages(coin_data_list, per_page) do
     count =
-      if is_nil(coins_data_list) do
+      if is_nil(coin_data_list) do
         0
       else
-        length(coins_data_list)
+        length(coin_data_list)
       end
 
     (count / per_page) |> Float.ceil() |> round()
@@ -100,14 +113,14 @@ defmodule App.CoinDataAPI do
     Enum.slice(list, (start_index - 1) * per_page, per_page)
   end
 
-  defp clean_data(%{data: coins_data_list} = data)
-       when coins_data_list == [] or is_nil(coins_data_list) do
+  defp clean_data(%{data: coin_data_list} = data)
+       when coin_data_list == [] or is_nil(coin_data_list) do
     data
   end
 
-  defp clean_data(%{data: coins_data_list} = data) do
+  defp clean_data(%{data: coin_data_list} = data) do
     cleaned_data =
-      coins_data_list
+      coin_data_list
       |> Enum.map(fn coin_data_map -> trim_map_values(coin_data_map) end)
 
     %{data | data: cleaned_data}
@@ -210,5 +223,21 @@ defmodule App.CoinDataAPI do
 
   defp take_items(%{x: x, y: y}, interval) when interval in ["h1", "h2", "h6", "h12"] do
     %{x: Enum.take(x, -24), y: Enum.take(y, -24)}
+  end
+
+  defp fetch_history_data(url) do
+    with {:ok, %{body: body, status_code: 200}} <-
+           HTTPoison.get(url),
+         {:ok, %{"data" => data}} = Jason.decode(body) do
+      {:ok, data}
+    else
+      {:ok, %{status_code: status_code} = reason} ->
+        Logger.error("An error ouccured, status_code: #{status_code}, reason: #{reason}")
+        :error
+
+      {:error, %{reason: reason}} ->
+        Logger.error("An error occured, reason: #{reason}")
+        :error
+    end
   end
 end

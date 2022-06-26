@@ -1,4 +1,4 @@
-defmodule AppWeb.CoinsDataLive do
+defmodule AppWeb.CoinListingLive do
   use AppWeb, :live_view
   alias App.CoinDataAPI
   alias AppWeb.SpinnerComponent
