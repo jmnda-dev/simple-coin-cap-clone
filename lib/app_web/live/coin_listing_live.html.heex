@@ -31,7 +31,7 @@
                 <!-- head -->
                 <thead>
                   <tr>
-                    <th>
+                    <th class="md:table-cell hidden">
                       <%= sort_link(
                         @socket,
                         "Rank " <> sort_icon("rank", @sort.sort_by, @sort.sort_order),
@@ -58,7 +58,7 @@
                         @sort.sort_order
                       ) %>
                     </th>
-                    <th>
+                    <th class="md:table-cell hidden">
                       <%= sort_link(
                         @socket,
                         "Market Cap " <> sort_icon("marketCapUsd", @sort.sort_by, @sort.sort_order),
@@ -67,10 +67,10 @@
                         @sort.sort_order
                       ) %>
                     </th>
-                    <th>
+                    <th class="lg:table-cell hidden">
                       VWAP
                     </th>
-                    <th>
+                    <th class="md:table-cell hidden">
                       <%= sort_link(
                         @socket,
                         "Supply " <> sort_icon("supply", @sort.sort_by, @sort.sort_order),
@@ -79,7 +79,7 @@
                         @sort.sort_order
                       ) %>
                     </th>
-                    <th>
+                    <th class="md:table-cell hidden">
                       <%= sort_link(
                         @socket,
                         "Volume(24Hr) " <>
@@ -105,7 +105,7 @@
                 <tbody>
                   <%= for coin_data <- @data.data do %>
                     <tr>
-                      <td><%= coin_data["rank"] %></td>
+                      <td class="md:table-cell hidden"><%= coin_data["rank"] %></td>
                       <td>
                         <div class="flex items-center space-x-3">
                           <div class="avatar">
@@ -127,10 +127,10 @@
                       <td>
                         $ <%= coin_data["priceUsd"] %>
                       </td>
-                      <td><%= coin_data["marketCapUsd"] %></td>
-                      <td><%= coin_data["vwap24Hr"] %></td>
-                      <td><%= coin_data["supply"] %></td>
-                      <td><%= coin_data["volumeUsd24Hr"] %></td>
+                      <td class="md:table-cell hidden"><%= coin_data["marketCapUsd"] %></td>
+                      <td class="lg:table-cell hidden"><%= coin_data["vwap24Hr"] %></td>
+                      <td class="md:table-cell hidden"><%= coin_data["supply"] %></td>
+                      <td class="md:table-cell hidden"><%= coin_data["volumeUsd24Hr"] %></td>
                       <td>
                         <span class={change_percent(coin_data["changePercent24Hr"])}>
                           <%= coin_data["changePercent24Hr"] %>
