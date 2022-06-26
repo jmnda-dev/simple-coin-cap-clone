@@ -1,4 +1,5 @@
 # App
+A Simple Coin Cap clone I built with Phoenix LiveView.
 
 To start your Phoenix server:
 
