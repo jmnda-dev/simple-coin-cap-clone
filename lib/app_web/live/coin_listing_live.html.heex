@@ -1,46 +1,6 @@
-defmodule AppWeb.CoinsDataLive do
-  use AppWeb, :live_view
-  alias App.CoinDataServer
-  alias AppWeb.SpinnerComponent
-  alias AppWeb.Endpoint
-  import AppWeb.LiveHelpers
 
-  @coin_data_topic "coin_data"
-
-  def mount(_, _, socket) do
-    if connected?(socket) do
-      Endpoint.subscribe(@coin_data_topic)
-    end
-
-    {
-      :ok,
-      socket
-      |> assign_page_title("Live Crypto Currency Data")
-    }
-  end
-
-  def handle_params(params, _url, socket) do
-    page = String.to_integer(params["page"] || "1")
-    per_page = String.to_integer(params["per_page"] || "10")
-
-    sort_by = params["sort_by"] || "rank"
-    sort_order = (params["sort_order"] || "asc") |> String.to_atom()
-
-    paginate_options = %{page: page, per_page: per_page}
-    sort_options = %{sort_by: sort_by, sort_order: sort_order}
-
-    {
-      :noreply,
-      socket
-      |> assign(paginate: paginate_options, sort: sort_options)
-      |> assign(:data, assign_coins_data(paginate_options, sort_options))
-    }
-  end
-
-  def render(assigns) do
-    ~H"""
     <div class="flex justify-center mt-14">
-      <h1 class="md:text-5xl text-4xl">Live Crypto Currency Data</h1>
+      <h1 class="md:text-5xl text-4xl">Crypto Currency Listing</h1>
     </div>
 
     <div class="flex m-4">
@@ -57,19 +17,21 @@ defmodule AppWeb.CoinsDataLive do
         <div>
           <div class="flex">
             <table class="table w-full">
-              <%= if is_nil(@data.coins_data) do %>
+            <div class="flex justify-center">
+              <%= if @data.loaded? and not @data.success? do %>
                 <p>An error occured while retrieving data</p>
               <% end %>
+            </div>
 
-              <%= if @data.coins_data == [] do %>
-                <SpinnerComponent.spinner class="w-20 h-20 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" />
+              <%= if not @data.loaded? and not @data.success? do %>
+                <.spinner class="w-20 h-20 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" />
               <% end %>
 
-              <%= if @data.coins_data != [] and not is_nil(@data.coins_data) do %>
+              <%= if @data.success? do %>
                 <!-- head -->
                 <thead>
                   <tr>
-                    <th>
+                    <th class="md:table-cell hidden">
                       <%= sort_link(
                         @socket,
                         "Rank " <> sort_icon("rank", @sort.sort_by, @sort.sort_order),
@@ -96,7 +58,7 @@ defmodule AppWeb.CoinsDataLive do
                         @sort.sort_order
                       ) %>
                     </th>
-                    <th>
+                    <th class="md:table-cell hidden">
                       <%= sort_link(
                         @socket,
                         "Market Cap " <> sort_icon("marketCapUsd", @sort.sort_by, @sort.sort_order),
@@ -105,10 +67,10 @@ defmodule AppWeb.CoinsDataLive do
                         @sort.sort_order
                       ) %>
                     </th>
-                    <th>
+                    <th class="lg:table-cell hidden">
                       VWAP
                     </th>
-                    <th>
+                    <th class="md:table-cell hidden">
                       <%= sort_link(
                         @socket,
                         "Supply " <> sort_icon("supply", @sort.sort_by, @sort.sort_order),
@@ -117,7 +79,7 @@ defmodule AppWeb.CoinsDataLive do
                         @sort.sort_order
                       ) %>
                     </th>
-                    <th>
+                    <th class="md:table-cell hidden">
                       <%= sort_link(
                         @socket,
                         "Volume(24Hr) " <>
@@ -141,9 +103,9 @@ defmodule AppWeb.CoinsDataLive do
                   </tr>
                 </thead>
                 <tbody>
-                  <%= for coin_data <- @data.coins_data do %>
+                  <%= for coin_data <- @data.data do %>
                     <tr>
-                      <td><%= coin_data["rank"] %></td>
+                      <td class="md:table-cell hidden"><%= coin_data["rank"] %></td>
                       <td>
                         <div class="flex items-center space-x-3">
                           <div class="avatar">
@@ -165,10 +127,10 @@ defmodule AppWeb.CoinsDataLive do
                       <td>
                         $ <%= coin_data["priceUsd"] %>
                       </td>
-                      <td><%= coin_data["marketCapUsd"] %></td>
-                      <td><%= coin_data["vwap24Hr"] %></td>
-                      <td><%= coin_data["supply"] %></td>
-                      <td><%= coin_data["volumeUsd24Hr"] %></td>
+                      <td class="md:table-cell hidden"><%= coin_data["marketCapUsd"] %></td>
+                      <td class="lg:table-cell hidden"><%= coin_data["vwap24Hr"] %></td>
+                      <td class="md:table-cell hidden"><%= coin_data["supply"] %></td>
+                      <td class="md:table-cell hidden"><%= coin_data["volumeUsd24Hr"] %></td>
                       <td>
                         <span class={change_percent(coin_data["changePercent24Hr"])}>
                           <%= coin_data["changePercent24Hr"] %>
@@ -207,77 +169,3 @@ defmodule AppWeb.CoinsDataLive do
         <div class="m-5"></div>
       </div>
     </div>
-    """
-  end
-
-  def handle_info(%{event: "coin_data_updated"}, %{assigns: assigns} = socket) do
-    {
-      :noreply,
-      socket |> assign(data: assign_coins_data(assigns.paginate, assigns.sort))
-    }
-  end
-
-  def handle_event("select-per-page", %{"per-page" => per_page}, %{assigns: assigns} = socket) do
-    paginate_options = %{assigns.paginate | per_page: String.to_integer(per_page)}
-
-    {
-      :noreply,
-      socket
-      |> assign(
-        data: assign_coins_data(paginate_options, assigns.sort),
-        paginate: paginate_options,
-        sort: assigns.sort
-      )
-    }
-  end
-
-  def handle_event("sort", %{"sort_by" => sort_by}, %{assigns: assigns} = socket) do
-    sort_options = %{
-      assigns.sort
-      | sort_by: sort_by,
-        sort_order: toggle_sort_order(assigns.sort.sort_order)
-    }
-
-    {
-      :noreply,
-      socket
-      |> assign(
-        data: assign_coins_data(assigns.paginate, sort_options),
-        paginate: assigns.paginate,
-        sort: sort_options
-      )
-    }
-  end
-
-  defp assign_page_title(socket, title) do
-    assign(socket, :page_title, title)
-  end
-
-  defp sort_link(socket, text, paginate_options, sort_by, sort_order) do
-    live_patch(text,
-      to:
-        Routes.live_path(
-          socket,
-          __MODULE__,
-          sort_by: sort_by,
-          sort_order: toggle_sort_order(sort_order),
-          page: paginate_options.page,
-          per_page: paginate_options.per_page
-        )
-    )
-  end
-
-  defp toggle_sort_order(:asc), do: :desc
-  defp toggle_sort_order(:desc), do: :asc
-
-  defp assign_coins_data(paginate_options, sort_options) do
-    CoinDataServer.get_all_coins_data(
-      paginate: paginate_options,
-      sort: sort_options
-    )
-  end
-
-  def sort_icon(col_name, sort_by, :asc) when col_name == sort_by, do: "🔽️"
-  def sort_icon(col_name, sort_by, :desc) when col_name == sort_by, do: "🔼️"
-  def sort_icon(_, _, _), do: ""
-end

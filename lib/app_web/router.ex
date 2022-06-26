@@ -18,7 +18,7 @@ defmodule AppWeb.Router do
     pipe_through :browser
 
     get "/index", PageController, :index
-    live "/", CoinsDataLive
+    live "/", CoinListingLive
     live "/:id/detail", CoinDetailLive
   end
 

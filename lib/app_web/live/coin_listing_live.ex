@@ -1,0 +1,110 @@
+defmodule AppWeb.CoinListingLive do
+  use AppWeb, :live_view
+  alias App.CoinDataAPI
+  alias AppWeb.Endpoint
+  import AppWeb.LiveHelpers
+  import AppWeb.Components
+
+  @coin_data_topic "coin_data_update"
+
+  def mount(_, _, socket) do
+    if connected?(socket) do
+      Endpoint.subscribe(@coin_data_topic)
+    end
+
+    {
+      :ok,
+      socket
+      |> assign_page_title("Live Crypto Currency Data")
+    }
+  end
+
+  def handle_params(params, _url, socket) do
+    page = String.to_integer(params["page"] || "1")
+    per_page = String.to_integer(params["per_page"] || "40")
+
+    sort_by = params["sort_by"] || "rank"
+    sort_order = (params["sort_order"] || "asc") |> String.to_atom()
+
+    paginate_options = %{page: page, per_page: per_page}
+    sort_options = %{sort_by: sort_by, sort_order: sort_order}
+
+    {
+      :noreply,
+      socket
+      |> assign(paginate: paginate_options, sort: sort_options)
+      |> assign(:data, assign_coins_data(paginate_options, sort_options))
+    }
+  end
+
+  def handle_info(%{event: "data_updated"}, %{assigns: assigns} = socket) do
+    {
+      :noreply,
+      socket |> assign(data: assign_coins_data(assigns.paginate, assigns.sort))
+    }
+  end
+
+  def handle_event("select-per-page", %{"per-page" => per_page}, %{assigns: assigns} = socket) do
+    paginate_options = %{assigns.paginate | per_page: String.to_integer(per_page)}
+
+    {
+      :noreply,
+      socket
+      |> assign(
+        data: assign_coins_data(paginate_options, assigns.sort),
+        paginate: paginate_options,
+        sort: assigns.sort
+      )
+    }
+  end
+
+  def handle_event("sort", %{"sort_by" => sort_by}, %{assigns: assigns} = socket) do
+    sort_options = %{
+      assigns.sort
+      | sort_by: sort_by,
+        sort_order: toggle_sort_order(assigns.sort.sort_order)
+    }
+
+    {
+      :noreply,
+      socket
+      |> assign(
+        data: assign_coins_data(assigns.paginate, sort_options),
+        paginate: assigns.paginate,
+        sort: sort_options
+      )
+    }
+  end
+
+  defp assign_page_title(socket, title) do
+    assign(socket, :page_title, title)
+  end
+
+  defp sort_link(socket, text, paginate_options, sort_by, sort_order) do
+    live_patch(text,
+      to:
+        Routes.live_path(
+          socket,
+          __MODULE__,
+          sort_by: sort_by,
+          sort_order: toggle_sort_order(sort_order),
+          page: paginate_options.page,
+          per_page: paginate_options.per_page
+        )
+    )
+  end
+
+  defp toggle_sort_order(:asc), do: :desc
+  defp toggle_sort_order(:desc), do: :asc
+
+  defp assign_coins_data(paginate_options, sort_options) do
+    CoinDataAPI.get_all(
+      paginate: paginate_options,
+      sort: sort_options
+    )
+  end
+
+  def sort_icon(col_name, sort_by, :asc) when col_name == sort_by, do: "🔽️"
+  def sort_icon(col_name, sort_by, :desc) when col_name == sort_by, do: "🔼️"
+  def sort_icon(_, _, _), do: ""
+end
