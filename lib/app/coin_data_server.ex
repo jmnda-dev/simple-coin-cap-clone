@@ -7,7 +7,7 @@ defmodule App.CoinDataServer do
   require Logger
   alias AppWeb.Endpoint
 
-  @interval 30_000
+  @interval 10_000
   @limit 200
   @base_url "https://api.coincap.io/v2"
   @fetch_all_url "#{@base_url}/assets/?limit=#{@limit}"
