@@ -1,8 +1,8 @@
 defmodule AppWeb.CoinDetailLive do
   use AppWeb, :live_view
-  alias AppWeb.{ChartComponent, SpinnerComponent}
   alias App.CoinDataAPI
   import AppWeb.LiveHelpers
+  import AppWeb.Components
   require Logger
 
   def mount(_, _, socket) do
@@ -59,7 +59,8 @@ defmodule AppWeb.CoinDetailLive do
                   "30 minutes": "m30",
                   "Hourly ": "h1",
                   "2 hours": "h2",
-                  "6 hours": "h6"
+                  "6 hours": "h6",
+                  "All ": "all"
                 ],
                 @interval
               ) %>
@@ -69,9 +70,9 @@ defmodule AppWeb.CoinDetailLive do
 
         <div class="flex w-full justify-center">
           <%= if not assigns.chart_loaded? do %>
-            <SpinnerComponent.spinner class="w-20 h-20 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" />
+            <.spinner class="w-20 h-20 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" />
           <% else %>
-            <ChartComponent.chart />
+            <.chart />
           <% end %>
         </div>
       </div>

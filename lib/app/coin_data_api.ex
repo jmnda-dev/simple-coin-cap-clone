@@ -40,7 +40,12 @@ defmodule App.CoinDataAPI do
   end
 
   def get_history(id, interval) do
-    url = "https://api.coincap.io/v2/assets/#{id}/history/?interval=#{interval}"
+    url =
+      if interval == "all" do
+        "https://api.coincap.io/v2/assets/#{id}/history/?interval=d1"
+      else
+        "https://api.coincap.io/v2/assets/#{id}/history/?interval=#{interval}"
+      end
 
     history_data =
       case fetch_history_data(url) do
@@ -223,6 +228,10 @@ defmodule App.CoinDataAPI do
 
   defp take_items(%{x: x, y: y}, interval) when interval in ["h1", "h2", "h6", "h12"] do
     %{x: Enum.take(x, -24), y: Enum.take(y, -24)}
+  end
+
+  defp take_items(%{x: x, y: y}, interval) when interval == "all" do
+    %{x: x, y: y}
   end
 
   defp fetch_history_data(url) do
