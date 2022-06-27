@@ -53,21 +53,6 @@ defmodule App.CoinDataServer do
     {:noreply, new_state}
   end
 
-  def handle_call({:fetch_coin_history, %{id: id, interval: interval}}, current_state) do
-    url = "#{@base_url}/assets/#{id}/history/?interval=#{interval}"
-
-    history_data =
-      case fetch_data(url) do
-        {:ok, fetched_data} ->
-          fetched_data
-
-        :error ->
-          :error
-      end
-
-    {:noreply, history_data, current_state}
-  end
-
   def handle_call(:get_all, _from, current_state) do
     {:reply, current_state, current_state}
   end
