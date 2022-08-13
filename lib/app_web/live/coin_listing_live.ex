@@ -15,8 +15,8 @@ defmodule AppWeb.CoinListingLive do
 
     {
       :ok,
-      socket |> assign_page_title("Live Crypto Currency Data") |> assign(:diff, []),
-      temporary_assigns: [diff: []]
+      socket |> assign_page_title("Live Crypto Currency Data") |> assign(:diff_list, []),
+      temporary_assigns: [diff_list: []]
     }
   end
 
@@ -50,11 +50,12 @@ defmodule AppWeb.CoinListingLive do
     diff = List.myers_difference(old_data.data, new_data.data)
 
     ins = Keyword.get(diff, :ins) || []
+    diff_list = ins |> Enum.map(fn map -> map["id"] end)
 
     new_sock =
       socket
       |> assign(data: new_data)
-      |> assign(:diff, ins)
+      |> assign(:diff_list, diff_list)
       |> assign(
         :paginate,
         assigns.paginate
@@ -66,7 +67,7 @@ defmodule AppWeb.CoinListingLive do
       push_event(
         new_sock,
         "highlight",
-        %{}
+        %{diff: diff_list}
       )
     }
   end
@@ -135,15 +136,13 @@ defmodule AppWeb.CoinListingLive do
   def sort_icon(col_name, sort_by, :desc) when col_name == sort_by, do: "🔼️"
   def sort_icon(_, _, _), do: ""
 
-  def highlight(js, coin_data_map, diff) do
-    if coin_data_map in diff do
+  def highlight(js, id, diff_list) do
+    if id in diff_list do
       JS.transition(js, {"transition ease-in-out delay-150", "bg-sky-200", "bg-white-100"},
         time: 1000
       )
     else
-      JS.transition(js, {"transition ease-in-out delay-150", "bg-white-100", "bg-white-100"},
-        time: 1000
-      )
+      JS.transition(js, {"transition ease-in-out delay-150", "bg-base", "bg-base"}, time: 1000)
     end
   end
 end

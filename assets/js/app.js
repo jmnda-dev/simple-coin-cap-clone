@@ -58,11 +58,12 @@ Hooks.Chart = {
 
 Hooks.highlightChanged = {
     updated() {
-        this.handleEvent("highlight", ({ diffs }) => {
-            setTimeout(
+        this.handleEvent("highlight", ({ diff }) => {
+            if (diff) {
                 document.querySelectorAll(`[data-highlight]`).forEach(el => {
                     liveSocket.execJS(el, el.getAttribute("data-highlight"))
-                }), 500)
+                })
+            }
         })
 
     }
