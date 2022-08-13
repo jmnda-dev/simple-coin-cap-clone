@@ -108,7 +108,7 @@
                     <th></th>
                   </tr>
                 </thead>
-                <tbody phx-hook="ElObserver" id="listing-table-body">
+                <tbody phx-hook="highlightChanged" id="listing-table-body">
                   <%= for coin_data <- @data.data do %>
                     <tr data-highlight={highlight(%JS{}, coin_data, @diff)} class="border-b border-slate-200">
                       <td class="md:table-cell hidden"><%= coin_data["rank"] %></td>
