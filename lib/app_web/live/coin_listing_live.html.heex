@@ -3,33 +3,39 @@
       <h1 class="md:text-5xl text-4xl">Crypto Currency Listing</h1>
     </div>
 
-    <div class="flex m-4">
-      <form phx-change="select-per-page">
-        <p class="m-2 text-xl font-semibold">Items per page</p>
-        <select class="select select-primary w-full max-w-xs" name="per-page">
-          <%= options_for_select([10, 15, 20, 40], @paginate.per_page) %>
-        </select>
-      </form>
-    </div>
+    <div class="flex flex-col justify-center mt-5">
+      <div class="m-4 flex justify-center">
+        <form phx-change="select-per-page">
+          <p class="m-2 text-xl font-semibold">Items per page</p>
+          <select class="select select-primary w-full max-w-xs" name="per-page">
+            <%= options_for_select([10, 15, 20, 40], @paginate.per_page) %>
+          </select>
+        </form>
+      </div>
 
-    <div class="flex justify-center mt-5">
-      <div class="overflow-x-auto w-full">
-        <div>
-          <div class="flex">
-            <table class="table w-full">
+
+      <div class="coverflow-x-auto w-full">
+          <div class="flex justify-center">
             <div class="flex justify-center">
               <%= if @data.loaded? and not @data.success? do %>
-                <p>An error occured while retrieving data</p>
+              <div class="alert alert-error shadow-lg">
+                <div>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span class="text-xl text-slate-50 font-semibold">Error! An error occured while retrieving data</span>
+                </div>
+              </div>
               <% end %>
             </div>
 
-              <%= if not @data.loaded? and not @data.success? do %>
-                <.spinner class="w-20 h-20 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" />
-              <% end %>
+            <%= if not @data.loaded? and not @data.success? do %>
+              <.spinner class="w-20 h-20 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" />
+            <% end %>
 
               <%= if @data.success? do %>
+            <table class="w-10/12">
+
                 <!-- head -->
-                <thead>
+                <thead class="border">
                   <tr>
                     <th class="md:table-cell hidden">
                       <%= sort_link(
@@ -102,9 +108,9 @@
                     <th></th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody phx-hook="ElObserver" id="listing-table-body">
                   <%= for coin_data <- @data.data do %>
-                    <tr>
+                    <tr data-highlight={highlight(%JS{}, coin_data, @diff)} class="border-b border-slate-200">
                       <td class="md:table-cell hidden"><%= coin_data["rank"] %></td>
                       <td>
                         <div class="flex items-center space-x-3">
@@ -144,10 +150,11 @@
                     </tr>
                   <% end %>
                 </tbody>
-              <% end %>
             </table>
+              <% end %>
           </div>
 
+          <%= if @data.success? do %>
           <div class="flex justify-center mt-3">
             <div class="btn-group">
               <%= for page <- 1..@data.pages do %>
@@ -163,9 +170,7 @@
               <% end %>
             </div>
           </div>
-        </div>
-        <div class="m-5"></div>
+          <% end %>
 
-        <div class="m-5"></div>
       </div>
     </div>
