@@ -4,6 +4,7 @@ defmodule AppWeb.CoinListingLive do
   alias AppWeb.Endpoint
   import AppWeb.LiveHelpers
   import AppWeb.Components
+  alias Phoenix.LiveView.JS
 
   @coin_data_topic "coin_data_update"
 
@@ -14,8 +15,8 @@ defmodule AppWeb.CoinListingLive do
 
     {
       :ok,
-      socket
-      |> assign_page_title("Live Crypto Currency Data")
+      socket |> assign_page_title("Live Crypto Currency Data") |> assign(:diff, []),
+      temporary_assigns: [diff: []]
     }
   end
 
@@ -38,9 +39,35 @@ defmodule AppWeb.CoinListingLive do
   end
 
   def handle_info(%{event: "data_updated"}, %{assigns: assigns} = socket) do
+    old_data = assigns.data
+
+    new_data =
+      CoinDataAPI.get_all(
+        paginate: assigns.paginate,
+        sort: assigns.sort
+      )
+
+    diff = List.myers_difference(old_data.data, new_data.data)
+
+    ins = Keyword.get(diff, :ins) || []
+
+    new_sock =
+      socket
+      |> assign(data: new_data)
+      |> assign(:diff, ins)
+      |> assign(
+        :paginate,
+        assigns.paginate
+      )
+      |> assign(:sort, assigns.sort)
+
     {
       :noreply,
-      socket |> assign(data: assign_coins_data(assigns.paginate, assigns.sort))
+      push_event(
+        new_sock,
+        "highlight",
+        %{}
+      )
     }
   end
 
@@ -107,4 +134,16 @@ defmodule AppWeb.CoinListingLive do
   def sort_icon(col_name, sort_by, :asc) when col_name == sort_by, do: "🔽️"
   def sort_icon(col_name, sort_by, :desc) when col_name == sort_by, do: "🔼️"
   def sort_icon(_, _, _), do: ""
+
+  def highlight(js, coin_data_map, diff) do
+    if coin_data_map in diff do
+      JS.transition(js, {"transition ease-in-out delay-150", "bg-sky-200", "bg-white-100"},
+        time: 1000
+      )
+    else
+      JS.transition(js, {"transition ease-in-out delay-150", "bg-white-100", "bg-white-100"},
+        time: 1000
+      )
+    end
+  end
 end

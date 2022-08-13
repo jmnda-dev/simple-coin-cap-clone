@@ -52,8 +52,22 @@ Hooks.Chart = {
             chart.data.labels = y
             chart.update()
         })
+
     }
 }
+
+Hooks.highlightChanged = {
+    updated() {
+        this.handleEvent("highlight", ({ diffs }) => {
+            setTimeout(
+                document.querySelectorAll(`[data-highlight]`).forEach(el => {
+                    liveSocket.execJS(el, el.getAttribute("data-highlight"))
+                }), 500)
+        })
+
+    }
+}
+
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, { hooks: Hooks, params: { _csrf_token: csrfToken } })
