@@ -179,7 +179,7 @@ defmodule App.CoinDataAPI do
 
     case new_value do
       [number, prefix] ->
-        number <> String.at(prefix, 0)
+        "#{number} #{String.at(prefix, 0)}"
 
       _ ->
         value
