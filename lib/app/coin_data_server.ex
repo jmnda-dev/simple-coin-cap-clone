@@ -7,7 +7,7 @@ defmodule App.CoinDataServer do
   require Logger
   alias AppWeb.Endpoint
 
-  @interval 10_000
+  @interval 5000
   @limit 200
   @base_url "https://api.coincap.io/v2"
   @fetch_all_url "#{@base_url}/assets/?limit=#{@limit}"
@@ -24,11 +24,11 @@ defmodule App.CoinDataServer do
       {:ok, data}
     else
       {:ok, %{status_code: status_code} = reason} ->
-        Logger.error("An error ouccured, status_code: #{status_code}, reason: #{reason}")
+        Logger.error("An error ouccured, status_code: #{status_code}, reason: #{inspect(reason)}")
         :error
 
       {:error, %{reason: reason}} ->
-        Logger.error("An error occured, reason: #{reason}")
+        Logger.error("An error occured, reason: #{inspect(reason)}")
         :error
     end
   end
@@ -42,10 +42,10 @@ defmodule App.CoinDataServer do
     new_state =
       case fetch_data(@fetch_all_url) do
         {:ok, fetched_data} ->
-          %{current_state | data: fetched_data, loaded?: false, success?: true}
+          %{current_state | data: fetched_data, loaded?: true, success?: true}
 
         :error ->
-          %{current_state | data: [], loaded?: false, success?: false}
+          %{current_state | data: [], loaded?: true, success?: false}
       end
 
     schedule_data_fetch()
