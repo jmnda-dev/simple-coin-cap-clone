@@ -1,5 +1,8 @@
 # App
 A Simple Coin Cap clone I built with Phoenix LiveView.
+![Screenshot from 2022-06-26 19-31-08](https://user-images.githubusercontent.com/65728679/175826668-e97d9ec3-fd43-457f-b865-a2c45295d147.png)
+![Screenshot from 2022-06-26 19-32-04](https://user-images.githubusercontent.com/65728679/175826679-aaf971b7-82cf-43ae-911e-b411ce89a001.png)
+
 
 To start your Phoenix server:
 
