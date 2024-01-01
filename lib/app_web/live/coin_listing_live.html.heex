@@ -110,7 +110,7 @@
                 </thead>
                 <tbody phx-hook="highlightChanged" id="listing-table-body">
                   <%= for coin_data <- @data.data do %>
-                    <tr data-highlight={highlight(%JS{}, coin_data["id"], @diff_list)} class="border-b border-slate-200">
+                    <tr class="border-b border-slate-200" data-highlight-change={highlight()}>
                       <td class="md:table-cell hidden"><%= coin_data["rank"] %></td>
                       <td>
                         <div class="flex items-center space-x-3">
@@ -120,7 +120,7 @@
                                 src={
                                   "https://assets.coincap.io/assets/icons/#{coin_data["symbol"] |> String.downcase()}@2x.png"
                                 }
-                                alt="Avatar Tailwind CSS Component"
+                                alt={"#{coin_data["symbol"]} Coin"}
                               />
                             </div>
                           </div>
@@ -130,14 +130,14 @@
                           </div>
                         </div>
                       </td>
-                      <td>
+                      <td data-highlight="priceUsd">
                         $ <%= coin_data["priceUsd"] %>
                       </td>
                       <td class="md:table-cell hidden"><%= coin_data["marketCapUsd"] %></td>
                       <td class="lg:table-cell hidden"><%= coin_data["vwap24Hr"] %></td>
                       <td class="md:table-cell hidden"><%= coin_data["supply"] %></td>
                       <td class="md:table-cell hidden"><%= coin_data["volumeUsd24Hr"] %></td>
-                      <td>
+                      <td data-highlight="changePercent24Hr">
                         <span class={change_percent(coin_data["changePercent24Hr"])}>
                           <%= coin_data["changePercent24Hr"] %>
                         </span>

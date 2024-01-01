@@ -16,7 +16,7 @@ defmodule AppWeb.CoinListingLive do
     {
       :ok,
       socket |> assign_page_title("Live Crypto Currency Data") |> assign(:diff_list, []),
-      temporary_assigns: [diff_list: []]
+      temporary_assigns: [data: []]
     }
   end
 
@@ -47,15 +47,9 @@ defmodule AppWeb.CoinListingLive do
         sort: assigns.sort
       )
 
-    diff = List.myers_difference(old_data.data, new_data.data)
-
-    ins = Keyword.get(diff, :ins) || []
-    diff_list = ins |> Enum.map(fn map -> map["id"] end)
-
-    new_sock =
+    socket =
       socket
-      |> assign(data: new_data)
-      |> assign(:diff_list, diff_list)
+      |> assign(:data, new_data)
       |> assign(
         :paginate,
         assigns.paginate
@@ -64,11 +58,7 @@ defmodule AppWeb.CoinListingLive do
 
     {
       :noreply,
-      push_event(
-        new_sock,
-        "highlight",
-        %{diff: diff_list}
-      )
+      socket
     }
   end
 
@@ -136,13 +126,9 @@ defmodule AppWeb.CoinListingLive do
   def sort_icon(col_name, sort_by, :desc) when col_name == sort_by, do: "🔼️"
   def sort_icon(_, _, _), do: ""
 
-  def highlight(js, id, diff_list) do
-    if id in diff_list do
+  def highlight(js \\ %JS{}) do
       JS.transition(js, {"transition ease-in-out delay-150", "bg-sky-200", "bg-white-100"},
         time: 1000
       )
-    else
-      JS.transition(js, {"transition ease-in-out delay-150", "bg-base", "bg-base"}, time: 1000)
-    end
   end
 end

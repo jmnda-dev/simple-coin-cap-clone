@@ -58,20 +58,45 @@ Hooks.Chart = {
 
 Hooks.highlightChanged = {
     updated() {
-        this.handleEvent("highlight", ({ diff }) => {
-            if (diff) {
-                document.querySelectorAll(`[data-highlight]`).forEach(el => {
-                    liveSocket.execJS(el, el.getAttribute("data-highlight"))
-                })
-            }
-        })
-
+            document.querySelectorAll("[data-item-changed]").forEach(el => {
+                liveSocket.execJS(el.parentNode, el.parentNode.getAttribute("data-highlight-change"))
+            })
     }
 }
 
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-let liveSocket = new LiveSocket("/live", Socket, { hooks: Hooks, params: { _csrf_token: csrfToken } })
+let liveSocket = new LiveSocket("/live", Socket, { hooks: Hooks, params: { _csrf_token: csrfToken }, dom: {
+    onBeforeElUpdated(from, to) {
+        if (from.hasAttribute("data-highlight")) {
+            regex = /[^\d.-]/g
+
+            switch (from.getAttribute("data-highlight")) {
+                case "priceUsd":
+                    oldValue = parseFloat(from.innerHTML.replace(regex, ""))
+                    newValue = parseFloat(to.innerHTML.replace(regex, ""))
+
+                    if (oldValue !== newValue) {
+                        to.setAttribute("data-item-changed", "true")
+                    }
+                    break;
+                case "changePercent24Hr":
+                    oldSpanElement = from.querySelector('span')
+                    newSpanElement = to.querySelector('span')
+
+                    oldValue = parseFloat(oldSpanElement.innerHTML.replace(regex, ""))
+                    newValue = parseFloat(newSpanElement.innerHTML.replace(regex, ""))
+
+                    if (oldValue !== newValue) {
+                        to.setAttribute("data-item-changed", "true")
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+} })
 
 // Show progress bar on live navigation and form submits
 topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })
