@@ -24,7 +24,7 @@ FROM ${BUILDER_IMAGE} as builder
 # install build dependencies
 RUN apt-get update -y && apt-get install -y build-essential curl git \
   && apt-get clean && rm -f /var/lib/apt/lists/*_* \
-  && curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
+  && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
   && apt install -y apt-transport-https \
   && apt-get install -y nodejs \
   && npm i -g yarn
